@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#16121f">
-<meta name="description" content="Forja de Píxeles: editor de pixel art para juegos con personaje animado, tiles, fondos con parallax y niveles.">
+<meta name="description" content="Forja de Píxeles: editor de pixel art para juegos con personaje animado, tiles, fondos con parallax, niveles, música y sonidos.">
 <title>Forja de Píxeles</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icons/icon-192.png">
@@ -26,6 +26,7 @@
       <button class="tab" role="tab" data-v="edit" aria-selected="true">Dibujar</button>
       <button class="tab" role="tab" data-v="ia" aria-selected="false">Crear con IA</button>
       <button class="tab" role="tab" data-v="map" aria-selected="false">Mapa</button>
+      <button class="tab" role="tab" data-v="music" aria-selected="false">Música</button>
       <button class="tab" role="tab" data-v="play" aria-selected="false">Probar</button>
       <button class="tab" role="tab" data-v="export" aria-selected="false">Exportar</button>
     </nav>
@@ -299,6 +300,131 @@
     </aside>
   </main>
 
+  <!-- ================= MÚSICA ================= -->
+  <main class="mus" id="v-music" hidden>
+    <section class="side">
+      <div class="card">
+        <h2 class="px">Canción</h2>
+        <div class="row">
+          <select id="mSong" aria-label="Elegir canción" style="flex:1;min-width:140px"></select>
+          <button class="btn primary" id="mPlay">▶ Escuchar</button>
+          <button class="btn" id="mNew">+ Nueva</button>
+          <button class="btn" id="mDup">Duplicar</button>
+          <button class="btn" id="mDel">Eliminar</button>
+        </div>
+        <div id="mSongBox">
+          <div class="row" style="margin-top:10px">
+            <label class="f" style="flex:1;min-width:140px">Nombre<input type="text" id="mName" maxlength="40"></label>
+            <label class="f">Velocidad (bpm)<input type="number" id="mBpm" min="50" max="220" style="width:90px"></label>
+            <label class="f">Pasos<select id="mSteps"><option value="16">16 (2 compases)</option><option value="32">32 (4 compases)</option><option value="48">48 (6 compases)</option><option value="64">64 (8 compases)</option></select></label>
+            <label class="f" style="justify-content:flex-end"><span class="row tight"><input type="checkbox" id="mLoop"> Repetir</span></label>
+          </div>
+        </div>
+        <p class="note" id="mEmpty" hidden>Todavía no hay canciones. Crea una con «+ Nueva», agrega un ejemplo de la derecha o pídesela a Claude.</p>
+      </div>
+      <div class="card" id="mRollCard">
+        <h2 class="px">Pistas y notas</h2>
+        <div class="chips" id="mTracks" aria-label="Pistas"></div>
+        <div class="row" style="margin-top:8px">
+          <button class="btn sm" id="mTAdd">+ Pista</button>
+          <button class="btn sm" id="mTDel">Quitar pista</button>
+          <label class="f" style="flex-direction:row;align-items:center;gap:6px">Instrumento<select id="mVoice"></select></label>
+          <label class="f" style="flex-direction:row;align-items:center;gap:6px;flex:1;min-width:130px">Volumen<input type="range" id="mVol" min="0" max="100" style="flex:1"></label>
+        </div>
+        <div class="row" style="margin-top:8px" id="mOctRow">
+          <button class="btn sm" id="mOctUp" aria-label="Notas más agudas">▲ Agudo</button>
+          <button class="btn sm" id="mOctDn" aria-label="Notas más graves">▼ Grave</button>
+          <span class="px" id="mOctInfo"></span>
+        </div>
+        <div class="rollwrap"><canvas id="mRoll" width="512" height="240" aria-label="Notas de la pista: toca una casilla para poner o quitar una nota; arrastra a la derecha para alargarla"></canvas></div>
+        <p class="note" id="mHelp"></p>
+        <details style="margin-top:6px"><summary class="px" style="cursor:pointer">Ver y editar como texto</summary>
+          <textarea id="mText" rows="3" spellcheck="false" aria-label="Notas de la pista en texto" style="margin-top:8px"></textarea>
+          <p class="out" id="mTextMsg"></p></details>
+      </div>
+      <div class="card">
+        <h2 class="px">Pedir a Claude.ai</h2>
+        <p class="note" style="margin:0 0 8px">Describe la música o los sonidos que quieres. La app arma las instrucciones exactas para <a href="https://claude.ai/new" target="_blank" rel="noopener">Claude.ai</a>; tú pegas lo que responda y la app lo revisa antes de agregarlo.</p>
+        <div class="row">
+          <label class="f">Canciones<select id="cCan"><option value="0">Ninguna</option><option value="1" selected>1</option><option value="2">2</option><option value="3">3</option></select></label>
+          <label class="f">Efectos de sonido<select id="cSon"><option value="0">Ninguno</option><option value="1">1</option><option value="3" selected>3</option><option value="5">5</option><option value="8">8</option></select></label>
+        </div>
+        <textarea id="cDesc" rows="3" style="margin-top:8px;font-family:var(--font-ui);font-size:14px" placeholder="Ej.: música tensa para una cueva con murciélagos, y sonidos de recoger una gema, un murciélago que aletea y una puerta de piedra."></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="cCopy">Copiar instrucciones</button>
+          <a class="btn" href="https://claude.ai/new" target="_blank" rel="noopener">Abrir Claude.ai ↗</a>
+          <button class="btn teal" id="cDirect" hidden>Crear ahora con Claude</button>
+          <button class="btn" id="cStop" hidden>Detener</button>
+        </div>
+        <p class="out" id="cCopyOut"></p>
+        <label class="f" style="margin-top:8px">Pega aquí la respuesta de Claude
+          <textarea id="cResp" rows="5" placeholder="Pega la respuesta completa (el JSON)" aria-label="Respuesta de Claude"></textarea></label>
+        <div class="row" style="margin-top:8px"><button class="btn primary" id="cReview">Revisar respuesta</button><button class="btn sm teal" id="cErrCopy" hidden>Copiar el error para Claude</button></div>
+        <p class="out" id="cMsg" role="status"></p>
+        <p class="out" id="cErrOut"></p>
+        <div id="cPrev" hidden>
+          <div class="iaprev" id="cPrevBody"></div>
+          <div class="row" style="margin-top:10px"><button class="btn primary" id="cApply">Agregar al proyecto</button></div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="card">
+        <h2 class="px">En tu juego</h2>
+        <p class="note" style="margin:0 0 8px">Elige qué canción suena en cada nivel y qué sonido hace cada acción. Se escuchan en la pestaña <b>Probar</b> y también en el <code>game.html</code> exportado.</p>
+        <div class="px" style="margin-bottom:4px">Música de cada nivel</div>
+        <div class="evlist" id="mLevels"></div>
+        <div class="px" style="margin:10px 0 4px">Sonido de cada acción</div>
+        <div class="evlist" id="mEvents"></div>
+        <div class="row" style="margin-top:10px">
+          <label class="f" style="flex:1;min-width:110px">Volumen música<input type="range" id="mVolM" min="0" max="100"></label>
+          <label class="f" style="flex:1;min-width:110px">Volumen efectos<input type="range" id="mVolE" min="0" max="100"></label>
+        </div>
+        <div class="row" style="margin-top:10px"><button class="btn teal" id="mTry">Probar el juego con sonido ▶</button></div>
+      </div>
+      <div class="card">
+        <h2 class="px">Canciones de ejemplo</h2>
+        <div class="exlist" id="mExSongs"></div>
+        <p class="note">«Agregar» copia la canción a tu proyecto para que la edites como quieras.</p>
+      </div>
+      <div class="card">
+        <h2 class="px">Sonidos de ejemplo</h2>
+        <div class="exlist" id="mExSfx"></div>
+      </div>
+      <div class="card">
+        <h2 class="px">Mis sonidos</h2>
+        <div class="row">
+          <select id="sSel" aria-label="Elegir sonido" style="flex:1;min-width:130px"></select>
+          <button class="btn primary" id="sPlay">▶</button>
+          <button class="btn" id="sNew">+ Nuevo</button>
+          <button class="btn" id="sDel">Eliminar</button>
+        </div>
+        <div id="sBox">
+          <div class="row" style="margin-top:10px">
+            <label class="f">Onda<select id="sWave"></select></label>
+            <label class="f" style="flex:1;min-width:110px">Volumen<input type="range" id="sVol" min="5" max="100"></label>
+          </div>
+          <label class="f" style="margin-top:8px">Tramos (uno por línea: frecuencia inicial, final y milisegundos)
+            <textarea id="sTr" rows="4" spellcheck="false" aria-label="Tramos del sonido"></textarea></label>
+          <canvas id="sWavePv" width="320" height="56" aria-hidden="true"></canvas>
+          <p class="out" id="sMsg"></p>
+        </div>
+        <p class="note">Cada línea es una notita que se desliza de un tono a otro. Ej.: <code>988 988 70</code> y <code>1319 1319 300</code> hacen el sonido de una moneda. Una frecuencia <code>0</code> es silencio.</p>
+      </div>
+      <div class="card">
+        <h2 class="px">Descargar audio</h2>
+        <div class="row">
+          <button class="btn" id="xSongWav">Canción .wav</button>
+          <button class="btn" id="xSfxWav">Sonido .wav</button>
+          <button class="btn" id="xAudioZip">Todo el audio (ZIP)</button>
+          <button class="btn" id="xMusJson">Música .json</button>
+        </div>
+        <p class="note">El ZIP completo de la pestaña Exportar ya incluye el audio y un <code>game.html</code> con música y sonidos.</p>
+      </div>
+    </aside>
+  </main>
+
   <!-- ================= PROBAR ================= -->
   <main class="play" id="v-play" hidden>
     <section>
@@ -319,7 +445,7 @@
           <dt>Trepar</dt><dd>↑ o ↓ mientras cuelgas</dd>
           <dt>Salto de pared</dt><dd>Salto mientras cuelgas</dd>
         </dl>
-        <div class="row" style="margin-top:12px"><button class="btn" id="gReset">Reiniciar</button></div>
+        <div class="row" style="margin-top:12px"><button class="btn" id="gReset">Reiniciar</button><label class="row tight"><input type="checkbox" id="sndOn" checked> Sonido y música</label></div>
         <p class="note">Aquí se usan tus dibujos reales: cada movimiento se activa solo según lo que hace el personaje. Si algo se ve raro, vuelve a Dibujar y ajusta ese frame.</p>
       </div>
     </aside>
@@ -374,12 +500,18 @@
       </div>
     </div>
   </main>
+  <footer class="foot">
+    <p>Creado para la educación.</p>
+    <p>Créditos: <a href="https://www.instagram.com/codeclubnanduti/#" target="_blank" rel="noopener">@codeclubnanduti</a> · <a href="https://www.instagram.com/didactica_aumentada3.0/#" target="_blank" rel="noopener">@didactica_aumentada3.0</a></p>
+  </footer>
 </div>
 <div class="toast" id="toast" hidden></div>
 <script src="js/core.js"></script>
+<script src="js/musica.js"></script>
 <script src="js/game.js"></script>
 <script src="js/ia.js"></script>
 <script src="js/app.js"></script>
+<script src="js/musica-ui.js"></script>
 <script>if("serviceWorker" in navigator&&location.protocol.indexOf("http")===0){navigator.serviceWorker.register("sw.js").catch(function(){})}</script>
 </body>
 </html>

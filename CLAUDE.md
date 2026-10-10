@@ -4,8 +4,10 @@ App web estática (sin build, sin dependencias) para hacer pixel art de videojue
 
 ## Reglas generales
 - No agregues frameworks ni pasos de compilación. Todo es HTML + CSS + JavaScript simple.
-- `js/core.js`, `js/game.js` y `js/ia.js` no pueden tocar el DOM: las herramientas de Node los cargan tal cual.
+- `js/core.js`, `js/game.js`, `js/ia.js` y `js/musica.js` no pueden tocar el DOM: las herramientas de Node los cargan tal cual.
 - `makeGame` en `js/game.js` se copia dentro del `game.html` exportado (`makeGame.toString()`): debe seguir siendo una función autocontenida (solo usa `D` y sus propias funciones).
+- `makeAudio` en `js/musica.js` también se copia dentro del `game.html` exportado (`makeAudio.toString()`): debe seguir autocontenida (no usa nada de fuera, salvo `AudioContext` al reproducir).
+- El pie de página de `index.html` («Creado para la educación» y los créditos a @codeclubnanduti y @didactica_aumentada3.0) y la última línea del README no se quitan ni se cambian.
 - Después de cambiar cualquier archivo del sitio, sube `VERSION` en `sw.js`.
 - Formato de proyecto: ver `docs/FORMATO.md`. Los cambios al formato deben seguir leyendo proyectos viejos (`objToProject` ya acepta `forja-pixel-1`).
 
@@ -36,9 +38,14 @@ Los proyectos viven en `proyectos/*.json`. Para tocarlos:
 - Si cambias el formato del proyecto (nuevos campos, tiles, movimientos, escenas), actualiza también `iaPrompt` y `iaApply`, y la explicación de `docs/IA.md`; así Claude.ai sigue pidiendo y recibiendo lo correcto.
 - Los fondos pueden llevar colores propios con `theme` (ver `docs/FORMATO.md`); `cleanTheme` en `core.js` lo valida.
 
+### Música y sonidos
+- Datos en `musica` del proyecto (canciones, sonidos, eventos, volumen) y `cancion` en cada nivel. Formato y reglas: `docs/MUSICA.md`. Lógica en `js/musica.js` (sintetizador, validación, `musicaPrompt`) y pantalla en `js/musica-ui.js`.
+- Para componer o editar a mano: las `notas` de cada pista llevan exactamente `pasos` palabras. Comprueba con `node herramientas/validar.mjs proyectos/X.json` y escucha el resultado generando los `.wav` con `node herramientas/audio.mjs proyectos/X.json`.
+- Si agregas una acción al juego, avisa del sonido desde `makeGame` con `snd('nombre')` y suma la acción a `MUS_EVENTOS`.
+
 ### Fondos y escenas nuevas
 - Temas de color: `THEMES` en `core.js` (y `theme` por nivel para colores propios; los tipos de dibujo están en `SCENE_KINDS`). Escenas: `SCENES` (clave, nombre, tema, tipo). Los tipos de dibujo son `bosque`, `ciudad` y `cueva` (función `genScene`). Para un tipo nuevo, agrega una rama en `genScene` que llene las capas `sky`, `far` y `near` (256×144, deben repetirse sin cortes en horizontal).
 - Un fondo dibujado a mano va en `bg.layers`: 3 capas (cielo, lejos, cerca) de 144 filas de 256 caracteres.
 
 ## Verificar la app en un navegador
-Con `python3 -m http.server 8000` y Playwright se puede abrir `http://localhost:8000`, pasar por las cuatro pestañas y mirar la consola: no debe haber errores (salvo fallar al cargar Google Fonts si no hay red).
+Con `python3 -m http.server 8000` y Playwright se puede abrir `http://localhost:8000`, pasar por las pestañas (Dibujar, Crear con IA, Mapa, Música, Probar y Exportar) y mirar la consola: no debe haber errores (salvo fallar al cargar Google Fonts si no hay red).

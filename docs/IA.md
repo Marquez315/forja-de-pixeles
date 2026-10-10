@@ -60,6 +60,10 @@ Un nivel (y `fondos[].tema`) puede traer colores propios en vez de una `scene` y
 
 Lo que falte se completa con un tema base. Al guardar, el nivel conserva `scene: "personalizada"` y su `theme`, así el fondo se regenera igual en el repositorio.
 
+## Música y sonidos
+
+La música y los efectos se piden en la pestaña **Música** con el mismo método (instrucciones → Claude.ai → pegar la respuesta → vista previa → agregar). Su formato y sus reglas están en `docs/MUSICA.md`; la lógica es `musicaPrompt`, `musicaLeerKit` y `musicaApply` en `js/musica.js`.
+
 ## Para ampliar
 
 - **Otro tipo de escenario** (desierto, mar, espacio…): agrega una rama en `genScene` (`js/core.js`) y su nombre a `SCENE_KINDS`; después súmalo a la explicación de `fondos` en `iaPrompt`.

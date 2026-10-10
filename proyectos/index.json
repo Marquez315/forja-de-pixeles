@@ -2,12 +2,12 @@
   "proyectos": [
     {
       "nombre": "Aventura del bosque",
-      "descripcion": "Proyecto de ejemplo: personaje de pelo corto y 3 niveles (bosque, cueva y torre).",
+      "descripcion": "Proyecto de ejemplo: personaje de pelo corto y 3 niveles (bosque, cueva y torre), con música y sonidos de ejemplo.",
       "archivo": "aventura-bosque.json"
     },
     {
       "nombre": "Robot de la nieve",
-      "descripcion": "Personaje con casco, 3 niveles: un puente con pozos, un bosque nevado y una torre para trepar.",
+      "descripcion": "Personaje con casco, 3 niveles: un puente con pozos, un bosque nevado y una torre para trepar, con música y sonidos de ejemplo.",
       "archivo": "robot-nieve.json"
     }
   ]

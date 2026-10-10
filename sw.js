@@ -1,7 +1,7 @@
 /* Service worker: deja la app disponible sin conexión.
    Cuando cambies cualquier archivo del sitio, sube el número de VERSION para que los dispositivos se actualicen. */
-const VERSION = 'forja-pixel-v2-3';
-const FILES = ['./', 'index.html', 'manifest.webmanifest', 'css/app.css', 'js/core.js', 'js/game.js', 'js/ia.js', 'js/app.js',
+const VERSION = 'forja-pixel-v2-4';
+const FILES = ['./', 'index.html', 'manifest.webmanifest', 'css/app.css', 'js/core.js', 'js/musica.js', 'js/game.js', 'js/ia.js', 'js/app.js', 'js/musica-ui.js',
   'icons/icon-192.png', 'icons/icon-512.png', 'proyectos/index.json'];
 
 self.addEventListener('install', e => {

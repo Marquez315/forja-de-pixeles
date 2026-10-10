@@ -181,11 +181,13 @@ requestAnimationFrame(pvLoop);
 /* ---------- pestañas ---------- */
 function setView(v){
   if(UI.view==='play'&&v!=='play')stopGame();
-  UI.view=v;for(const k of ['edit','ia','map','play','export'])$('v-'+k).hidden=k!==v;
+  UI.view=v;for(const k of ['edit','ia','map','music','play','export'])$('v-'+k).hidden=k!==v;
+  if(v!=='music'&&typeof musicaSalir==='function')musicaSalir();
   document.querySelectorAll('#tabs .tab').forEach(t=>t.setAttribute('aria-selected',String(t.dataset.v===v)));
   if(v==='edit'){autoZoom();buildPanels();render()}
   if(v==='ia')renderIA();
   if(v==='map'){buildPanels();renderMap()}
+  if(v==='music')renderMusic();
   if(v==='play')startGame();
   if(v==='export')renderExport()}
 document.querySelectorAll('#tabs .tab').forEach(t=>t.onclick=()=>setView(t.dataset.v));
@@ -203,7 +205,7 @@ $('lvAdd').onclick=()=>{if(P.levels.length>=MAXLEVELS){toast('Máximo '+MAXLEVEL
   const m=l.map;for(let x=0;x<m.w;x++){m.data[(m.h-3)*m.w+x]=1;m.data[(m.h-2)*m.w+x]=2;m.data[(m.h-1)*m.w+x]=2}m.spawn=[2,m.h-4];m.goal=[m.w-3,m.h-4];
   clearUndo();refreshLevels();buildPalette();renderMap();dirty();toast('Nivel nuevo')};
 $('lvDup').onclick=()=>{if(P.levels.length>=MAXLEVELS){toast('Máximo '+MAXLEVELS+' niveles.');return}
-  const o=P.levels[P.lv],m=o.map,l={name:o.name+' copia',scene:o.scene,seed:o.seed,map:{w:m.w,h:m.h,data:m.data.slice(),spawn:m.spawn.slice(),goal:m.goal?m.goal.slice():null},bg:o.bg.map(b=>b.slice())};if(o.theme)l.theme=JSON.parse(JSON.stringify(o.theme));
+  const o=P.levels[P.lv],m=o.map,l={name:o.name+' copia',scene:o.scene,seed:o.seed,map:{w:m.w,h:m.h,data:m.data.slice(),spawn:m.spawn.slice(),goal:m.goal?m.goal.slice():null},bg:o.bg.map(b=>b.slice())};if(o.theme)l.theme=JSON.parse(JSON.stringify(o.theme));if(o.cancion!=null)l.cancion=o.cancion;
   P.levels.splice(P.lv+1,0,l);P.lv++;clearUndo();refreshLevels();renderMap();dirty();toast('Nivel duplicado')};
 confirmBtn($('lvDel'),()=>{if(P.levels.length<=1){toast('Tiene que quedar al menos un nivel.');return}P.levels.splice(P.lv,1);P.lv=Math.min(P.lv,P.levels.length-1);clearUndo();refreshLevels();buildPalette();renderMap();dirty()});
 $('lvUp').onclick=()=>{const i=P.lv;if(i>0){[P.levels[i-1],P.levels[i]]=[P.levels[i],P.levels[i-1]];P.lv--;refreshLevels();dirty()}};
@@ -247,10 +249,11 @@ function tilesetCanvas(){const cv=document.createElement('canvas');cv.width=NTIL
 function gameMeta(){
   const clips={};CLIP_DEFS.forEach((d,r)=>{const c=P.clips[d[0]];clips[d[0]]={row:r,frames:c.frames.length,fps:c.fps,loop:c.loop}});
   return {vw:BGW,vh:BGH,tile:TILE,size:P.size,clips,solid:P.solid.slice(),
-    levels:P.levels.map(l=>({name:l.name,map:{w:l.map.w,h:l.map.h,data:Array.from(l.map.data),spawn:l.map.spawn.slice(),goal:l.map.goal?l.map.goal.slice():null}}))}}
+    levels:P.levels.map(l=>({name:l.name,cancion:Number.isInteger(l.cancion)?l.cancion:-1,map:{w:l.map.w,h:l.map.h,data:Array.from(l.map.data),spawn:l.map.spawn.slice(),goal:l.map.goal?l.map.goal.slice():null}}))}}
 function gameData(){const D=gameMeta();D.sheet=sheetCanvas();D.tileset=tilesetCanvas();D.start=P.lv;D.levels.forEach((l,i)=>{l.bgs=P.levels[i].bg.map(b=>bufCanvas(b,BGW,BGH))});return D}
-function startGame(){stopGame();const D=gameData();D.onLevel=i=>{if(P.lv!==i){P.lv=i;refreshLevels()}};game=makeGame($('game'),D);game.start();$('game').focus({preventScroll:true})}
-function stopGame(){if(game){game.stop();game=null}}
+function startGame(){stopGame();const D=gameData();D.sfx=ev=>{if(typeof audioEvento==='function')audioEvento(ev)};
+  D.onLevel=i=>{if(P.lv!==i){P.lv=i;refreshLevels()}if(typeof audioNivel==='function')audioNivel(i)};game=makeGame($('game'),D);game.start();if(typeof audioNivel==='function')audioNivel(P.lv);$('game').focus({preventScroll:true})}
+function stopGame(){if(game){game.stop();game=null}if(typeof audioParar==='function')audioParar()}
 $('gReset').onclick=()=>{if(game)game.reset();$('game').focus({preventScroll:true})};
 document.querySelectorAll('#pad button').forEach(b=>{const k=b.dataset.k;
   const on=e=>{e.preventDefault();if(game)game.setKey(k,1)},off=e=>{e.preventDefault();if(game)game.setKey(k,0)};
@@ -282,11 +285,11 @@ function gameHtml(){
   const eng=makeGame.toString();
   return '<!doctype html><html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Juego de prueba</title>'+
   '<style>html,body{margin:0;height:100%;background:#0e0b16;color:#ddd;font:14px system-ui,sans-serif}body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}canvas{width:min(96vw,calc(96vh*16/9));image-rendering:pixelated;background:#101018;outline:none}p{margin:0;opacity:.7}</style></head><body>'+
-  '<canvas id="c" tabindex="0"></canvas><p>Mover: ← → · Saltar: Espacio · Correr: Shift · Colgarte: empuja hacia una pared en el aire · Trepar: ↑ ↓</p>'+
-  '<script>\nconst D='+JSON.stringify(D)+';\nfunction clamp(v,a,b){return Math.max(a,Math.min(b,v))}\n'+eng+'\n'+
+  '<canvas id="c" tabindex="0"></canvas><p>Mover: ← → · Saltar: Espacio · Correr: Shift · Colgarte: empuja hacia una pared en el aire · Trepar: ↑ ↓ · Pulsa una tecla para activar el sonido</p>'+
+  '<script>\nconst D='+JSON.stringify(D)+';\nconst MUSICA='+JSON.stringify(P.music)+';\nfunction clamp(v,a,b){return Math.max(a,Math.min(b,v))}\n'+eng+'\n'+makeAudio.toString()+'\n'+
   'function load(s){return new Promise((ok,no)=>{const i=new Image();i.onload=()=>ok(i);i.onerror=()=>no(new Error("No se pudo cargar "+s));i.src=s})}\n'+
   'const bgNames=D.levels.map((l,i)=>["cielo","lejos","cerca"].map(n=>"bg_"+(i+1)+"_"+n+".png"));\n'+
-  'Promise.all([load("spritesheet.png"),load("tileset.png"),...bgNames.map(r=>Promise.all(r.map(load)))]).then(([sheet,tileset,...bgs])=>{D.sheet=sheet;D.tileset=tileset;D.levels.forEach((l,i)=>{l.bgs=bgs[i]});const g=makeGame(document.getElementById("c"),D);g.start();document.getElementById("c").focus()}).catch(e=>{document.body.append(e.message+" (abre este archivo junto a los .png)")});\n'+
+  'Promise.all([load("spritesheet.png"),load("tileset.png"),...bgNames.map(r=>Promise.all(r.map(load)))]).then(([sheet,tileset,...bgs])=>{D.sheet=sheet;D.tileset=tileset;D.levels.forEach((l,i)=>{l.bgs=bgs[i]});const A=makeAudio(MUSICA);D.sfx=A.event;D.onLevel=i=>{A.playSong(D.levels[i].cancion)};const g=makeGame(document.getElementById("c"),D);g.start();document.getElementById("c").focus();let ini=0;const arrancar=()=>{if(ini)return;ini=1;A.unlock();A.playSong(D.levels[g.level()].cancion)};addEventListener("keydown",arrancar);addEventListener("pointerdown",arrancar)}).catch(e=>{document.body.append(e.message+" (abre este archivo junto a los .png)")});\n'+
   '<'+'/script></body></html>'}
 function claudeGuide(){
   const s=P.size,a=atlasObj();
@@ -296,6 +299,7 @@ function claudeGuide(){
   '- `tileset.png` + `levels.json`: tiles de '+TILE+'×'+TILE+' px en una sola fila y '+P.levels.length+' nivel(es) ('+P.levels.map(l=>l.name+' '+l.map.w+'×'+l.map.h).join(', ')+'). Cada nivel trae `data` (tiles), `spawn`, `goal` y sus 3 fondos. `solidTiles` lista los tiles que bloquean.\n'+
   '- `bg_N_cielo.png`, `bg_N_lejos.png`, `bg_N_cerca.png` (N = número de nivel): tres capas de '+BGW+'×'+BGH+' px que se repiten en horizontal (parallax).\n'+
   '- `project.json`: proyecto editable completo (paleta + todos los píxeles). Se puede volver a cargar en la app con Importar.\n'+
+  '- `musica.json` y las carpetas `musica/` (canciones .wav) y `sonidos/` (efectos .wav): la música de cada nivel y los sonidos del juego. En `project.json` van como `musica` (ver docs/MUSICA.md); `game.html` ya los reproduce.\n'+
   '- `game.html`: juego de prueba con todos los niveles (plataformas, salto, colgarse y trepar paredes, salto de pared, meta que pasa al nivel siguiente).\n\n'+
   '## Convenciones\n'+
   '- Todos los frames miran a la derecha; para ir a la izquierda, refleja el sprite.\n'+
@@ -319,7 +323,8 @@ async function buildZip(){
   files.push({name:'spritesheet.png',data:await pngBytes(sheetCanvas())},{name:'tileset.png',data:await pngBytes(tilesetCanvas())});
   for(let li=0;li<P.levels.length;li++)for(let i=0;i<3;i++)files.push({name:'bg_'+(li+1)+'_'+['cielo','lejos','cerca'][i]+'.png',data:await pngBytes(bufCanvas(P.levels[li].bg[i],BGW,BGH))});
   files.push({name:'atlas.json',data:enc.encode(JSON.stringify(atlasObj(),null,2))},{name:'levels.json',data:enc.encode(JSON.stringify(levelsObj()))},
-    {name:'project.json',data:enc.encode(JSON.stringify(projectToObj(P,true)))},{name:'game.html',data:enc.encode(gameHtml())},{name:'LEEME_CLAUDE.md',data:enc.encode(claudeGuide())});
+    {name:'project.json',data:enc.encode(JSON.stringify(projectToObj(P,true)))},{name:'game.html',data:enc.encode(gameHtml())},{name:'LEEME_CLAUDE.md',data:enc.encode(claudeGuide())},{name:'musica.json',data:enc.encode(JSON.stringify(P.music,null,1))});
+  files.push(...audioArchivos());
   return makeZip(files)}
 function claudeText(){
   const o=projectToObj(P,false);
@@ -493,7 +498,7 @@ document.querySelectorAll('.tab').forEach(t=>t.addEventListener('keydown',e=>{co
   if(e.key==='ArrowRight'){tabs[(i+1)%tabs.length].focus()}else if(e.key==='ArrowLeft'){tabs[(i-1+tabs.length)%tabs.length].focus()}}));
 
 /* ---------- arranque ---------- */
-function bootUI(){refreshLevels();buildTools();buildPalette();setObj(UI.obj);updUndo();if(UI.view==='map')renderMap();if(UI.view==='export')renderExport();if(UI.view==='ia')renderIA()}
+function bootUI(){refreshLevels();buildTools();buildPalette();setObj(UI.obj);updUndo();if(UI.view==='map')renderMap();if(UI.view==='export')renderExport();if(UI.view==='ia')renderIA();if(UI.view==='music')renderMusic()}
 (function init(){
   let saved=null;try{const s=localStorage.getItem(SAVE_KEY);if(s)saved=objToProject(JSON.parse(s))}catch(e){saved=null}
   P=saved||newProject();bootUI();

@@ -7,8 +7,8 @@ import { fileURLToPath } from 'node:url';
 
 export const RAIZ = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ctx = vm.createContext({ console, Blob, TextEncoder, window: {} });
-for (const f of ['js/core.js', 'js/game.js']) vm.runInContext(fs.readFileSync(path.join(RAIZ, f), 'utf8'), ctx, { filename: f });
-export const F = vm.runInContext(`({objToProject,projectToObj,newProject,SCENES,LEVEL_TEMPLATES,makeGame,levelFromAscii,blankLevel,attachLevels,randomCharColors,genCharacter,rng,bufRows,rowsBuf,BGW,BGH,TILE,NTILES,CLIP_DEFS,PAL_CHARS,FORMAT,MAXPAL,MAXLEVELS,genScene,hexRgb,crc32,makeZip,THEMES})`, ctx);
+for (const f of ['js/core.js', 'js/musica.js', 'js/game.js']) vm.runInContext(fs.readFileSync(path.join(RAIZ, f), 'utf8'), ctx, { filename: f });
+export const F = vm.runInContext(`({objToProject,projectToObj,newProject,SCENES,LEVEL_TEMPLATES,makeGame,levelFromAscii,blankLevel,attachLevels,randomCharColors,genCharacter,rng,bufRows,rowsBuf,BGW,BGH,TILE,NTILES,CLIP_DEFS,PAL_CHARS,FORMAT,MAXPAL,MAXLEVELS,genScene,hexRgb,crc32,makeZip,THEMES,makeAudio,musicaCancion,musicaSonido,musicaLimpia,musicaPorDefecto,MUS_CANCIONES_EJEMPLO,MUS_SONIDOS_EJEMPLO,MUS_EVENTOS,musicaIdLibre})`, ctx);
 
 export function leerProyecto(archivo) {
   let txt;

@@ -255,10 +255,11 @@ function rowsBuf(rows,w,h,max){const b=new Uint8Array(w*h);if(!Array.isArray(row
   return b}
 function levelToObj(l,withBg){const m=l.map,rows=[];
   for(let y=0;y<m.h;y++){let r='';for(let x=0;x<m.w;x++)r+=ch(m.data[y*m.w+x]);rows.push(r)}
-  const o={name:l.name,scene:l.scene||null,seed:l.seed||1,map:{w:m.w,h:m.h,spawn:m.spawn.slice(),goal:m.goal?m.goal.slice():null,rows}};if(l.theme)o.theme=l.theme;
+  const o={name:l.name,scene:l.scene||null,seed:l.seed||1,map:{w:m.w,h:m.h,spawn:m.spawn.slice(),goal:m.goal?m.goal.slice():null,rows}};if(l.theme)o.theme=l.theme;if(Number.isInteger(l.cancion)&&l.cancion>=0)o.cancion=l.cancion;
   if(withBg)o.bg={w:BGW,h:BGH,layers:l.bg.map(b=>bufRows(b,BGW,BGH))};return o}
 function projectToObj(P,withBg){
   const o={};if(P.meta)o.meta=P.meta;Object.assign(o,{format:FORMAT,size:P.size,palette:P.pal.slice(1),clips:{},tile:TILE,tiles:P.tiles.map(b=>bufRows(b,TILE,TILE)),solid:[...P.solid],gen:P.gen,levels:P.levels.map(l=>levelToObj(l,withBg))});
+  if(P.music)o.musica=P.music;
   for(const d of CLIP_DEFS){const c=P.clips[d[0]];o.clips[d[0]]={fps:c.fps,loop:c.loop,frames:c.frames.map(f=>bufRows(f,P.size,P.size))}}
   return o}
 /* Lee un nivel de un JSON. Si no trae "bg" pero sí una "scene" conocida, el fondo se genera solo (lo hace objToProject). */
@@ -273,7 +274,7 @@ function parseLevel(lo,i,max){
   let theme=null;if(lo.theme!=null){try{theme=cleanTheme(lo.theme)}catch(e){throw new Error(tag+e.message)}}
   if(lo.scene==='personalizada'&&!theme)throw new Error(tag+'la escena \"personalizada\" necesita un \"theme\" con colores.');
   const L={name:String(lo.name||('Nivel '+(i+1))).slice(0,40),scene:theme?'personalizada':(lo.scene||null),seed:clamp(lo.seed|0||1,1,99),
-    map:{w:mw,h:mh,data,spawn:spawn||pt(m.spawn,[1,mh-2]),goal:goal||pt(m.goal,null)},bg:null,needBg:false};if(theme)L.theme=theme;
+    map:{w:mw,h:mh,data,spawn:spawn||pt(m.spawn,[1,mh-2]),goal:goal||pt(m.goal,null)},bg:null,needBg:false};if(theme)L.theme=theme;if(Number.isInteger(lo.cancion)&&lo.cancion>=0)L.cancion=lo.cancion;
   const b=lo.bg;
   if(b&&Array.isArray(b.layers)&&b.layers.length===3&&b.w===BGW&&b.h===BGH){try{L.bg=b.layers.map(l=>rowsBuf(l,BGW,BGH,max))}catch(e){throw new Error(tag+'fondo: '+e.message)}}
   else{L.bg=[new Uint8Array(BGW*BGH),new Uint8Array(BGW*BGH),new Uint8Array(BGW*BGH)];L.needBg=!!(L.scene&&(theme||SCENES.some(s=>s[0]===L.scene)))}
@@ -295,6 +296,8 @@ function objToProject(o){
   if(!Array.isArray(los)||!los.length)throw new Error('Falta la lista de niveles (levels).');
   los=los.slice(0,MAXLEVELS);
   for(let i=0;i<los.length;i++)P.levels.push(parseLevel(los[i],i,max));
+  P.music=musicaLimpia(o.musica);
+  for(const L of P.levels)if(L.cancion!=null&&L.cancion>=P.music.canciones.length)delete L.cancion;
   attachLevels(P);
   for(let i=0;i<P.levels.length;i++){const L=P.levels[i];if(L.needBg){P.lv=i;genScene(P,L.scene,L.seed)}delete L.needBg}
   P.lv=clamp(o.lv|0,0,P.levels.length-1);return P}
@@ -318,7 +321,7 @@ function makeZip(files){const enc=new TextEncoder(),parts=[],central=[];let off=
 /* ---------- proyecto nuevo (lo usan la app y las herramientas de Node) ---------- */
 /* opt: {size, hair:'short'|'long'|'helmet', outline, colors:semilla, levels:['bosque','cueva','torre'] o [{template,scene,name}]} */
 function newProject(opt){opt=opt||{};const size=opt.size||32,hair=opt.hair||'short',outline=opt.outline!==false;
-  const p={size,pal:BASE_PAL.slice(),clips:{},tiles:[],solid:[1,2,3,4,5,7],levels:[],lv:0,gen:{hair,outline}};
+  const p={size,pal:BASE_PAL.slice(),clips:{},tiles:[],solid:[1,2,3,4,5,7],levels:[],lv:0,gen:{hair,outline},music:musicaPorDefecto()};
   genCharacter(p,{size,hair,outline});if(opt.colors)randomCharColors(p,rng(opt.colors));
   for(let i=0;i<NTILES;i++)p.tiles.push(i<7?makeTile(i+1):new Uint8Array(TILE*TILE));
   attachLevels(p);p.levels=[];

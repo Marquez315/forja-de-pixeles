@@ -4,6 +4,7 @@
    Al tocar la meta pasa al nivel siguiente; en el último muestra "¡Juego completo!".
    ======================================================================== */
 function makeGame(canvas,D){
+  const snd=D.sfx||function(){};
   const ctx=canvas.getContext('2d'),VW=D.vw,VH=D.vh;canvas.width=VW;canvas.height=VH;ctx.imageSmoothingEnabled=false;
   let li=clamp0(D.start|0,0,D.levels.length-1),L=D.levels[li],M=L.map;const T=D.tile,S=D.size,solid={};D.solid.forEach(id=>{solid[id]=1});
   const hbw=Math.max(6,Math.round(S*0.28)),hbh=Math.round(S*0.8),feetRow=Math.round(S*31/32);
@@ -22,28 +23,29 @@ function makeGame(canvas,D){
   function clamp(v,a,b){return Math.max(a,Math.min(b,v))}
   function appr(v,t,a){return v<t?Math.min(t,v+a):Math.max(t,v-a)}
   function step(){
+    const wasG=p.ground,wasC=p.cling;
     const dir=(K.right?1:0)-(K.left?1:0),jp=K.jump&&!jumpPrev;jumpPrev=K.jump;
     if(jp)p.jbuf=7;else if(p.jbuf>0)p.jbuf--;if(p.lock>0)p.lock--;
     const wl=touching(-1),wr=touching(1),wd=(wl&&!wr)?-1:(wr&&!wl)?1:(wl&&wr)?(dir||p.face):0;
-    p.cling=0;if(!p.ground&&wd!==0&&dir===wd&&p.lock===0&&p.vy>-2.2)p.cling=wd;
+    p.cling=0;if(!p.ground&&wd!==0&&dir===wd&&p.lock===0&&p.vy>-2.2)p.cling=wd;if(p.cling&&!wasC)snd('colgarse');
     const maxS=K.run?2.4:1.5;
     if(p.cling){p.vx=0;p.face=p.cling}
     else if(p.lock===0){p.vx=appr(p.vx,dir*maxS,dir?(p.ground?0.35:0.22):(p.ground?0.4:0.06));if(dir)p.face=dir}
     else p.vx=appr(p.vx,dir*maxS,0.05);
     if(p.ground)p.coyote=6;else if(p.coyote>0)p.coyote--;
     if(p.cling){p.vy=K.up?-0.9:K.down?1.3:0;
-      if(p.jbuf>0){p.vy=-5.2;p.vx=-p.cling*2.3;p.face=-p.cling;p.lock=10;p.cling=0;p.jbuf=0}}
+      if(p.jbuf>0){snd('salto_pared');p.vy=-5.2;p.vx=-p.cling*2.3;p.face=-p.cling;p.lock=10;p.cling=0;p.jbuf=0}}
     else{p.vy=Math.min(6.5,p.vy+0.36);
-      if(p.jbuf>0&&p.coyote>0){p.vy=-5.7;p.jbuf=0;p.coyote=0;p.ground=false}
+      if(p.jbuf>0&&p.coyote>0){snd('salto');p.vy=-5.7;p.jbuf=0;p.coyote=0;p.ground=false}
       if(!K.jump&&p.vy<-2.4)p.vy=-2.4}
     p.x+=p.vx;
     if(hit(p.x-hbw/2,p.y-hbh,p.x+hbw/2,p.y)){if(p.vx>0)p.x=Math.floor((p.x+hbw/2)/T)*T-hbw/2-0.001;else if(p.vx<0)p.x=(Math.floor((p.x-hbw/2)/T)+1)*T+hbw/2+0.001;p.vx=0}
     p.y+=p.vy;p.ground=false;
-    if(hit(p.x-hbw/2,p.y-hbh,p.x+hbw/2,p.y)){if(p.vy>0){p.y=Math.floor(p.y/T)*T-0.001;p.ground=true}else if(p.vy<0)p.y=(Math.floor((p.y-hbh)/T)+1)*T+hbh+0.001;p.vy=0}
-    if(p.y>M.h*T+90)reset();
+    if(hit(p.x-hbw/2,p.y-hbh,p.x+hbw/2,p.y)){if(p.vy>0){if(!wasG&&p.vy>2.4)snd('aterrizar');p.y=Math.floor(p.y/T)*T-0.001;p.ground=true}else if(p.vy<0)p.y=(Math.floor((p.y-hbh)/T)+1)*T+hbh+0.001;p.vy=0}
+    if(p.y>M.h*T+90){snd('caer');reset()}
     flag+=1;if(banner&&banner.t>0)banner.t--;
     if(M.goal&&!won&&p.x+hbw/2>M.goal[0]*T-4&&p.x-hbw/2<(M.goal[0]+1)*T+4&&p.y>M.goal[1]*T-T&&p.y-hbh<(M.goal[1]+1)*T){
-      if(li<D.levels.length-1)loadLevel(li+1);else{won=true;banner={text:'¡Juego completo!',t:9999,sub:'Pulsa salto para empezar de nuevo'}}}
+      if(li<D.levels.length-1){snd('meta');loadLevel(li+1)}else{snd('ganar');won=true;banner={text:'¡Juego completo!',t:9999,sub:'Pulsa salto para empezar de nuevo'}}}
     if(won&&jp){won=false;banner=null;loadLevel(0)}
     let a='idle';
     if(p.cling)a=(K.up||K.down)?'wallclimb':'wallhang';

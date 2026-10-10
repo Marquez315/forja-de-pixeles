@@ -4,8 +4,8 @@
 import { leerProyecto, F, fallar, args } from './lib.mjs';
 const { pos } = args(process.argv.slice(2));
 if (!pos[0]) fallar('Falta el archivo. Uso: node herramientas/validar.mjs proyectos/mi-proyecto.json');
-let P;
-try { ({ P } = leerProyecto(pos[0])); } catch (e) { fallar(e.message); }
+let P, obj;
+try { ({ P, obj } = leerProyecto(pos[0])); } catch (e) { fallar(e.message); }
 let avisos = 0;
 const av = m => { avisos++; console.log('  ⚠ ' + m); };
 console.log('✓ El archivo se puede abrir. Personaje ' + P.size + '×' + P.size + ', paleta de ' + (P.pal.length - 1) + ' colores, ' + P.levels.length + ' nivel(es).');
@@ -21,4 +21,13 @@ P.levels.forEach((l, i) => {
   const sinSolido = [...new Set(Array.from(m.data))].filter(v => v && !solid.has(v) && !P.tiles[v - 1].some(x => x)); if (sinSolido.length) av('Usa tiles vacíos (sin dibujo): ' + sinSolido.join(', '));
   if (!l.bg.some(b => b.some(v => v))) av('El fondo está vacío: añade "scene" (' + F.SCENES.map(s => s[0]).join(', ') + ') o un "bg".');
 });
+const mus = P.music;
+console.log('Música: ' + mus.canciones.length + ' canción(es), ' + Object.keys(mus.sonidos).length + ' sonido(s).');
+if (mus.canciones.length) P.levels.forEach((l, i) => { if (!Number.isInteger(l.cancion)) av('El nivel ' + (i + 1) + ' «' + l.name + '» no tiene música asignada.'); });
+for (const [ev] of F.MUS_EVENTOS) if (!mus.eventos[ev]) av('La acción «' + ev + '» no tiene sonido asignado.');
+if (obj.musica) {
+  const n = (obj.musica.canciones || []).length - mus.canciones.length, m = Object.keys(obj.musica.sonidos || {}).length - Object.keys(mus.sonidos).length;
+  if (n > 0) av(n + ' canción(es) del archivo se descartaron por tener errores (revisa docs/MUSICA.md).');
+  if (m > 0) av(m + ' sonido(s) del archivo se descartaron por tener errores (revisa docs/MUSICA.md).');
+}
 console.log(avisos ? '\n' + avisos + ' aviso(s). Revísalos; puede que sean intencionales.' : '\nTodo en orden.');

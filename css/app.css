@@ -127,11 +127,28 @@ input[type=range]{accent-color:var(--accent);min-width:0}
 .iastrip figure{margin:0;display:flex;flex-direction:column;gap:3px;align-items:flex-start}
 .iastrip figcaption{font-family:var(--font-px);font-size:10px;text-transform:uppercase;color:var(--muted)}
 .iaprev .lvl{border:1px solid var(--line);border-radius:8px;padding:8px;background:var(--panel2);display:flex;flex-direction:column;gap:6px;overflow:hidden}
+/* Música */
+.mus{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:14px;align-items:start}
+.rollwrap{margin-top:10px;overflow:auto;max-width:100%;border:1px solid var(--line);border-radius:8px;background:var(--panel)}
+#mRoll{display:block;touch-action:none;cursor:crosshair}
+.evlist{display:flex;flex-direction:column;gap:6px}
+.evrow{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.2fr) auto;gap:8px;align-items:center;font-size:13px}
+.evrow span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#mLevels .evrow{grid-template-columns:minmax(0,1fr) minmax(0,1.4fr)}
+.exlist{display:flex;flex-direction:column;gap:6px}
+.exrow{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:8px;align-items:center;border:1px solid var(--line);border-radius:8px;padding:6px 8px;background:var(--panel2)}
+.extxt{display:flex;flex-direction:column;min-width:0}
+.extxt small{color:var(--muted);font-size:12px}
+#sWavePv{width:100%;height:56px;margin-top:8px;border:1px solid var(--line);border-radius:6px;background:var(--panel2)}
+.foot{margin-top:auto;padding-top:22px;text-align:center;color:var(--muted);font-size:13px;line-height:1.6}
+.foot p{margin:0}
+.foot a{color:var(--accent);font-weight:500;text-decoration:underline;text-underline-offset:3px}
+.foot a:hover{text-decoration-thickness:2px}
 [hidden]{display:none!important}
 @media (max-width:1020px){
   .edit{grid-template-columns:minmax(0,1fr)}
   .tools{flex-direction:row;flex-wrap:wrap;justify-content:flex-start}
   .tsep{width:1px;height:auto;align-self:stretch;margin:0 2px}
-  .map,.play,.ia{grid-template-columns:minmax(0,1fr)}
+  .map,.play,.ia,.mus{grid-template-columns:minmax(0,1fr)}
 }
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
