@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#16121f">
+<meta name="description" content="Forja de Píxeles: editor de pixel art para juegos con personaje animado, tiles, fondos con parallax y niveles.">
+<title>Forja de Píxeles</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Silkscreen:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+
+<div class="app" id="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 8 8" shape-rendering="crispEdges" aria-hidden="true"><rect width="8" height="8" rx="1" fill="var(--panel2)"/><rect x="1" y="1" width="2" height="2" fill="var(--accent)"/><rect x="3" y="1" width="2" height="2" fill="var(--teal)"/><rect x="1" y="3" width="2" height="2" fill="var(--teal)"/><rect x="3" y="3" width="2" height="2" fill="var(--accent)"/><rect x="5" y="3" width="2" height="2" fill="var(--fg)"/><rect x="3" y="5" width="2" height="2" fill="var(--fg)"/></svg>
+      Forja de Píxeles
+    </div>
+    <nav class="tabs" id="tabs" role="tablist" aria-label="Secciones">
+      <button class="tab" role="tab" data-v="edit" aria-selected="true">Dibujar</button>
+      <button class="tab" role="tab" data-v="ia" aria-selected="false">Crear con IA</button>
+      <button class="tab" role="tab" data-v="map" aria-selected="false">Mapa</button>
+      <button class="tab" role="tab" data-v="play" aria-selected="false">Probar</button>
+      <button class="tab" role="tab" data-v="export" aria-selected="false">Exportar</button>
+    </nav>
+    <div class="spacer"></div>
+    <div class="row tight">
+      <button class="btn" id="undo" title="Deshacer (Ctrl+Z)">↶ Deshacer</button>
+      <button class="btn" id="redo" title="Rehacer (Ctrl+Y)">↷ Rehacer</button>
+      <button class="btn" id="newproj">Proyecto nuevo</button>
+    </div>
+  </header>
+
+  <!-- ================= DIBUJAR ================= -->
+  <main class="edit" id="v-edit">
+    <aside class="tools" id="tools" aria-label="Herramientas"></aside>
+    <section class="stage">
+      <div class="canvaswrap" id="cwrap"><canvas id="ed" width="256" height="256" aria-label="Lienzo de pixel art"></canvas></div>
+      <div class="stagebar">
+        <button class="btn sm" id="zout" aria-label="Alejar">−</button>
+        <span class="px" id="zlab">x8</span>
+        <button class="btn sm" id="zin" aria-label="Acercar">+</button>
+        <label class="row tight"><input type="checkbox" id="gridT" checked> Cuadrícula</label>
+        <label class="row tight" id="onionL"><input type="checkbox" id="onionT" checked> Frame anterior</label>
+        <span class="px info" id="info">x 0 · y 0</span>
+      </div>
+      <div class="palette">
+        <div class="palhead">
+          <span class="px">Paleta</span>
+          <input type="color" id="colIn" aria-label="Color seleccionado">
+          <button class="btn sm" id="addCol">+ Color nuevo</button>
+          <button class="btn sm" id="cleanPal" title="Quita colores de fondos que ya no usas">Limpiar paleta</button>
+          <span class="px" id="colInfo"></span>
+        </div>
+        <div class="sws" id="sws"></div>
+      </div>
+    </section>
+
+    <aside class="side">
+      <div class="seg" id="objseg" role="group" aria-label="Qué estás dibujando">
+        <button data-o="char" aria-pressed="true">Personaje</button>
+        <button data-o="tiles" aria-pressed="false">Tiles</button>
+        <button data-o="bg" aria-pressed="false">Fondo</button>
+      </div>
+
+      <!-- Personaje -->
+      <div id="p-char" class="side">
+        <div class="card">
+          <h2 class="px">Movimientos</h2>
+          <div class="chips" id="clips"></div>
+          <div style="height:10px"></div>
+          <div class="frames" id="frames"></div>
+          <div class="row tight">
+            <button class="btn sm" id="fAdd">+ Frame</button>
+            <button class="btn sm" id="fDup">Duplicar</button>
+            <button class="btn sm" id="fDel">Borrar</button>
+            <button class="btn sm" id="fL" aria-label="Mover a la izquierda">◀</button>
+            <button class="btn sm" id="fR" aria-label="Mover a la derecha">▶</button>
+          </div>
+        </div>
+        <div class="card">
+          <h2 class="px">Vista previa</h2>
+          <div class="pv"><canvas id="pv" width="128" height="128"></canvas></div>
+          <div class="row" style="margin-top:8px">
+            <button class="btn sm" id="pvPlay">⏸ Pausa</button>
+            <label class="row tight" style="flex:1">FPS <input type="range" id="fps" min="1" max="24" value="8" style="flex:1"> <span id="fpsv" class="px">8</span></label>
+          </div>
+          <label class="row tight" style="margin-top:6px"><input type="checkbox" id="loopT"> Repetir en bucle</label>
+        </div>
+        <div class="card">
+          <h2 class="px">Generar personaje</h2>
+          <p class="note" style="margin:0 0 8px">Crea un personaje con todos los movimientos listos. Después puedes retocar cada frame píxel a píxel.</p>
+          <div class="row">
+            <label class="f">Tamaño
+              <select id="gSize"><option value="16">16 px</option><option value="24">24 px</option><option value="32" selected>32 px</option><option value="48">48 px</option><option value="64">64 px</option></select>
+            </label>
+            <label class="f">Peinado
+              <select id="gHair"><option value="short">Corto</option><option value="long">Largo</option><option value="helmet">Casco</option></select>
+            </label>
+            <label class="f" style="justify-content:flex-end"><span class="row tight"><input type="checkbox" id="gOut" checked> Contorno</span></label>
+          </div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn primary" id="gen">Generar personaje</button>
+            <button class="btn" id="rndCol">Colores al azar</button>
+            <button class="btn" id="flipClip" title="Refleja todos los frames del movimiento actual (por ejemplo, pared a la izquierda)">Reflejar movimiento</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Tiles -->
+      <div id="p-tiles" class="side" hidden>
+        <div class="card">
+          <h2 class="px">Tiles del mapa (16×16)</h2>
+          <div class="tgrid" id="tgrid"></div>
+          <label class="row tight" style="margin-top:10px"><input type="checkbox" id="solidT"> Sólido (el personaje no lo atraviesa)</label>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="tClear">Vaciar tile</button>
+            <button class="btn" id="tReset">Restaurar tiles base</button>
+          </div>
+          <p class="note">Los tiles se pintan en la pestaña Mapa. El número del tile es el que aparece en los datos exportados.</p>
+        </div>
+      </div>
+
+      <!-- Fondo -->
+      <div id="p-bg" class="side" hidden>
+        <div class="card">
+          <h2 class="px">Fondo del nivel</h2>
+          <select id="lvSel2" aria-label="Elegir nivel del fondo"></select>
+          <p class="note">Cada nivel tiene su propio fondo. Elige el nivel y luego una escena.</p>
+        </div>
+        <div class="card">
+          <h2 class="px">Escenas</h2>
+          <div class="scenes" id="scenes"></div>
+          <div class="row" style="margin-top:10px">
+            <button class="btn" id="reseed">Otra variación</button>
+            <span class="px" id="seedv"></span>
+          </div>
+          <p class="note">Cada escena crea tres capas con parallax: cielo, lejos y cerca. Se repiten sin cortes al borde. Después dibuja encima lo que quieras.</p>
+        </div>
+        <div class="card">
+          <h2 class="px">Capa en edición</h2>
+          <div class="seg" id="layseg">
+            <button data-l="0" aria-pressed="true">Cielo</button>
+            <button data-l="1" aria-pressed="false">Lejos</button>
+            <button data-l="2" aria-pressed="false">Cerca</button>
+          </div>
+          <div class="pv" style="margin-top:10px"><canvas id="bgpv" width="256" height="144"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card" id="claudeCard">
+        <h2 class="px">Pedir a Claude</h2>
+        <label class="f">Qué quieres mejorar del dibujo actual
+          <textarea id="aiText" rows="2" placeholder="Ej.: dale una espada a la mano, más sombreado en la ropa, haz el pelo más oscuro"></textarea>
+        </label>
+        <div class="row" style="margin-top:8px">
+          <button class="btn teal" id="aiGo">Mejorar con Claude</button>
+          <button class="btn" id="aiStop" hidden>Detener</button>
+        </div>
+        <p class="out" id="aiOut"></p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ================= CREAR CON IA ================= -->
+  <main class="ia" id="v-ia" hidden>
+    <section class="side">
+      <div class="card">
+        <h2 class="px">1 · Qué quieres crear</h2>
+        <p class="note" style="margin:0 0 8px">Marca lo que Claude debe hacer. Puedes pedirlo todo junto o una cosa a la vez.</p>
+        <div class="chips" id="iaPresets" aria-label="Atajos"></div>
+        <div class="iasec">
+          <label class="chk"><input type="checkbox" id="iaPj" checked> Personaje</label>
+          <div class="iaopt" id="iaPjOpt">
+            <label class="f">Tamaño del personaje<select id="iaSize"></select></label>
+            <div>
+              <span class="px">Dibujar a mano (avanzado)</span>
+              <div class="chips" id="iaClips" style="margin-top:6px"></div>
+              <p class="note">Sin marcar nada, Claude diseña el aspecto y los colores y la app anima los 7 movimientos sola. Si marcas movimientos, Claude dibuja cada frame en texto: es más lento y puede equivocarse (usa 24 o 32 px).</p>
+            </div>
+          </div>
+        </div>
+        <div class="iasec">
+          <label class="chk"><input type="checkbox" id="iaTl"> Tiles (bloques del mapa)</label>
+          <div class="iaopt" id="iaTlOpt" hidden>
+            <label class="f">Cuáles<select id="iaTiles"><option value="vacios">Tiles nuevos en los huecos (8 a 16)</option><option value="base">Rediseñar los básicos (1 a 7)</option><option value="todos">Todos (1 a 16)</option></select></label>
+          </div>
+        </div>
+        <div class="iasec">
+          <label class="chk"><input type="checkbox" id="iaFo"> Fondos de niveles que ya tengo</label>
+          <div class="iaopt" id="iaFoOpt" hidden>
+            <label class="f">Para<select id="iaFondos"></select></label>
+          </div>
+        </div>
+        <div class="iasec">
+          <label class="chk"><input type="checkbox" id="iaNv"> Niveles nuevos (con su propio fondo)</label>
+          <div class="iaopt" id="iaNvOpt" hidden>
+            <div class="row">
+              <label class="f">Cantidad<input type="number" id="iaN" min="1" max="5" value="1" style="width:70px"></label>
+              <label class="f">Ancho<input type="number" id="iaW" min="16" max="120" value="40" style="width:76px"></label>
+              <label class="f">Alto<input type="number" id="iaH" min="9" max="60" value="18" style="width:76px"></label>
+              <label class="f">Dificultad<select id="iaDif"><option>fácil</option><option selected>media</option><option>difícil</option></select></label>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <h2 class="px">2 · Descríbelo</h2>
+        <textarea id="iaDesc" rows="4" placeholder="Ej.: una bruja con sombrero de pico que explora un pantano brumoso de noche. Estilo oscuro y misterioso, con verdes y violetas." style="font-family:var(--font-ui);font-size:14px"></textarea>
+      </div>
+      <div class="card">
+        <h2 class="px">3 · Llévalo a Claude</h2>
+        <p class="note" style="margin:0 0 8px">La app arma las instrucciones exactas (formato, paleta, medidas). Pégalas en un chat de Claude.ai; cuando responda, copia su respuesta y pégala en el paso 4.</p>
+        <div class="row">
+          <button class="btn primary" id="iaCopy">Copiar instrucciones</button>
+          <a class="btn" id="iaOpen" href="https://claude.ai/new" target="_blank" rel="noopener">Abrir Claude.ai ↗</a>
+          <button class="btn teal" id="iaDirect" hidden>Crear ahora con Claude</button>
+          <button class="btn" id="iaStop" hidden>Detener</button>
+        </div>
+        <p class="out" id="iaCopyOut"></p>
+        <details id="iaDet" style="margin-top:8px"><summary class="px" style="cursor:pointer">Ver las instrucciones</summary>
+          <textarea id="iaPromptView" rows="10" readonly aria-label="Instrucciones para Claude" style="margin-top:8px"></textarea></details>
+      </div>
+    </section>
+    <aside class="side">
+      <div class="card">
+        <h2 class="px">4 · Pega la respuesta de Claude</h2>
+        <textarea id="iaResp" rows="8" placeholder="Pega aquí la respuesta completa de Claude (el JSON)" aria-label="Respuesta de Claude"></textarea>
+        <div class="row" style="margin-top:8px">
+          <button class="btn primary" id="iaReview">Revisar respuesta</button>
+          <label class="f" style="flex:1;min-width:180px"><select id="iaWhere" aria-label="Si trae niveles"><option value="agregar">Niveles: agregarlos como nuevos</option><option value="reemplazar">Niveles: el primero reemplaza al nivel actual</option></select></label>
+        </div>
+        <p class="out" id="iaMsg" role="status"></p>
+        <div class="row" style="margin-top:6px"><button class="btn sm teal" id="iaErrCopy" hidden>Copiar el error para Claude</button></div>
+        <p class="out" id="iaErrOut"></p>
+      </div>
+      <div class="card" id="iaPrev" hidden>
+        <h2 class="px">5 · Vista previa</h2>
+        <div id="iaPrevBody" class="iaprev"></div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" id="iaApplyBtn" disabled>Aplicar al proyecto</button>
+          <button class="btn" id="iaUndo" hidden>Deshacer lo aplicado</button>
+        </div>
+        <p class="note">Nada cambia en tu proyecto hasta que pulses Aplicar. Después puedes retocarlo en Dibujar y Mapa.</p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ================= MAPA ================= -->
+  <main class="map" id="v-map" hidden>
+    <section class="stage">
+      <div class="stagebar">
+        <div class="seg" id="mseg" style="min-width:290px">
+          <button data-m="paint" aria-pressed="true">Pintar</button>
+          <button data-m="erase" aria-pressed="false">Borrar</button>
+          <button data-m="spawn" aria-pressed="false">Inicio</button>
+          <button data-m="goal" aria-pressed="false">Meta</button>
+        </div>
+        <label class="row tight"><input type="checkbox" id="mbgT" checked> Ver fondo</label>
+        <span class="px info" id="minfo"></span>
+      </div>
+      <div class="canvaswrap"><canvas id="mapc" width="640" height="288"></canvas></div>
+    </section>
+    <aside class="side">
+      <div class="card">
+        <h2 class="px">Niveles</h2>
+        <select id="lvSel" aria-label="Elegir nivel"></select>
+        <label class="f" style="margin-top:8px">Nombre <input type="text" id="lvName" maxlength="40"></label>
+        <div class="row" style="margin-top:8px">
+          <button class="btn" id="lvAdd">+ Nuevo</button><button class="btn" id="lvDup">Duplicar</button><button class="btn" id="lvDel">Eliminar</button>
+          <button class="btn" id="lvUp" title="Subir en el orden" aria-label="Subir nivel">▲</button><button class="btn" id="lvDn" title="Bajar en el orden" aria-label="Bajar nivel">▼</button>
+        </div>
+        <p class="note px" id="lvInfo"></p>
+        <p class="note">Usa <b>Inicio</b> y <b>Meta</b> para marcar dónde empieza y dónde termina el nivel. Al llegar a la meta, el juego pasa al siguiente.</p>
+      </div>
+      <div class="card">
+        <h2 class="px">Tiles</h2>
+        <div class="tgrid" id="mgrid"></div>
+        <p class="note">Clic o arrastra para pintar. Los tiles con marca verde son sólidos.</p>
+      </div>
+      <div class="card">
+        <h2 class="px">Tamaño del mapa</h2>
+        <div class="row">
+          <label class="f">Ancho <input type="number" id="mw" min="16" max="120" value="40" style="width:80px"></label>
+          <label class="f">Alto <input type="number" id="mh" min="9" max="60" value="18" style="width:80px"></label>
+          <button class="btn" id="mApply" style="align-self:flex-end">Aplicar</button>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <button class="btn" id="mClear">Vaciar mapa</button>
+          <button class="btn" id="mTest">Probar nivel ▶</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ================= PROBAR ================= -->
+  <main class="play" id="v-play" hidden>
+    <section>
+      <div class="gamebox"><canvas id="game" tabindex="0" aria-label="Juego de prueba"></canvas></div>
+      <div class="pad" id="pad">
+        <div class="grp"><button data-k="left">◀</button><button data-k="right">▶</button></div>
+        <div class="grp"><button data-k="up">▲</button><button data-k="down">▼</button><button data-k="jump">SALTO</button></div>
+      </div>
+    </section>
+    <aside class="side">
+      <div class="card">
+        <h2 class="px">Controles</h2>
+        <dl class="keys">
+          <dt>Mover</dt><dd>← → o A D</dd>
+          <dt>Correr</dt><dd>Mantén Shift</dd>
+          <dt>Saltar</dt><dd>Espacio, Z o K</dd>
+          <dt>Colgarte</dt><dd>En el aire, empuja hacia una pared</dd>
+          <dt>Trepar</dt><dd>↑ o ↓ mientras cuelgas</dd>
+          <dt>Salto de pared</dt><dd>Salto mientras cuelgas</dd>
+        </dl>
+        <div class="row" style="margin-top:12px"><button class="btn" id="gReset">Reiniciar</button></div>
+        <p class="note">Aquí se usan tus dibujos reales: cada movimiento se activa solo según lo que hace el personaje. Si algo se ve raro, vuelve a Dibujar y ajusta ese frame.</p>
+      </div>
+    </aside>
+  </main>
+
+  <!-- ================= EXPORTAR ================= -->
+  <main id="v-export" hidden>
+    <div class="exp">
+      <div class="card">
+        <h2 class="px">Paquete completo</h2>
+        <p>Un ZIP con hoja de sprites, atlas, tileset, todos los niveles, fondos, el proyecto editable, una guía para Claude y un juego listo para abrir.</p>
+        <button class="btn primary" id="xZip">Descargar ZIP</button>
+      </div>
+      <div class="card">
+        <h2 class="px">Llevar a Claude</h2>
+        <p>Copia un texto con tus assets y el formato de los datos. Pégalo en un chat de Claude y pídele el juego, enemigos, niveles o mejoras.</p>
+        <div class="row"><button class="btn teal" id="xCopy">Copiar paquete para Claude</button></div>
+        <p class="out" id="xCopyOut"></p>
+      </div>
+      <div class="card">
+        <h2 class="px">Archivos sueltos</h2>
+        <div class="row">
+          <button class="btn" id="xSheet">Hoja de sprites .png</button>
+          <button class="btn" id="xAtlas">Atlas .json</button>
+          <button class="btn" id="xTiles">Tileset .png</button>
+          <button class="btn" id="xMap">Niveles .json</button>
+          <button class="btn" id="xBg">Fondos del nivel .png</button>
+          <button class="btn" id="xProjLite" title="Sin imágenes de fondo: ideal para guardar en el repositorio y para editar con Claude">Proyecto .json (para el repo)</button>
+          <button class="btn" id="xProj">Proyecto .json completo</button>
+          <button class="btn" id="xGame">Juego .html</button>
+        </div>
+        <p class="note">El juego .html necesita estar en la misma carpeta que los .png. Por eso el ZIP es lo más cómodo.</p>
+      </div>
+      <div class="card">
+        <h2 class="px">Importar proyecto</h2>
+        <p>Carga un proyecto guardado, o el JSON que te devuelva Claude después de mejorarlo.</p>
+        <input type="file" id="impFile" accept=".json,application/json">
+        <textarea id="impText" rows="3" placeholder="O pega aquí el JSON del proyecto" style="margin-top:8px"></textarea>
+        <div class="row" style="margin-top:8px"><button class="btn" id="impGo">Cargar JSON pegado</button></div>
+        <p class="out" id="impOut"></p>
+      </div>
+      <div class="card">
+        <h2 class="px">Proyectos del repositorio</h2>
+        <p>Abre un proyecto guardado en la carpeta <code>proyectos/</code> de este sitio: personajes, niveles y fondos que ya están en GitHub.</p>
+        <div class="row"><select id="galSel" aria-label="Proyectos del repositorio"></select><button class="btn primary" id="galGo" disabled>Abrir</button></div>
+        <p class="out" id="galOut"></p>
+        <p class="note">Para sumar uno nuevo: descarga «Proyecto .json (para el repo)», súbelo a <code>proyectos/</code> y agrégalo a <code>proyectos/index.json</code>.</p>
+      </div>
+      <div class="card" style="grid-column:1/-1">
+        <h2 class="px">Hoja de sprites</h2>
+        <div class="sheetpv"><canvas id="sheetpv"></canvas></div>
+      </div>
+    </div>
+  </main>
+</div>
+<div class="toast" id="toast" hidden></div>
+<script src="js/core.js"></script>
+<script src="js/game.js"></script>
+<script src="js/ia.js"></script>
+<script src="js/app.js"></script>
+<script>if("serviceWorker" in navigator&&location.protocol.indexOf("http")===0){navigator.serviceWorker.register("sw.js").catch(function(){})}</script>
+</body>
+</html>
